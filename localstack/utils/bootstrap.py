@@ -318,7 +318,7 @@ class PortMappings(object):
             for i in range(port[1] - port[0] + 1):
                 self.add(port[0] + i, mapped[0] + i)
             return
-        if int(port) <= 0:
+        if port is None or int(port) <= 0:
             raise Exception('Unable to add mapping for invalid port: %s' % port)
         if self.contains(port):
             return
