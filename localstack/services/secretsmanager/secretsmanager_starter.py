@@ -1,5 +1,9 @@
 import logging
+import json
 from moto.secretsmanager import models as secretsmanager_models
+from moto.secretsmanager.models import SecretsManagerBackend, secretsmanager_backends, FakeSecret
+from moto.secretsmanager.models.SecretsManagerBackend import get_resource_policy
+from moto.secretsmanager.responses import SecretsManagerResponse
 from localstack.services.infra import start_moto_server
 from localstack.utils.aws import aws_stack
 
@@ -19,6 +23,32 @@ def apply_patches():
         return SECRET_ARN_STORAGE[k]
 
     secretsmanager_models.secret_arn = secretsmanager_models_secret_arn
+    
+    delete_resource_policy for secretsmanager
+    @staticmethod
+    def model_delete_resource_policy(secret_id):
+        return json.dumps(
+            {
+                "ARN": secret_id,
+                "Name": secret_id
+            }
+        )
+
+    def response_delete_resource_policy(self):
+        secret_id = self._get_param("SecretId")
+        return secretsmanager_backends[self.region].delete_resource_policy(
+            secret_id=secret_id
+        )
+    
+    def _get_resource_policy(secret_id):
+
+
+    if not hasattr(SecretsManagerBackend, 'delete_resource_policy'):
+        setattr(SecretsManagerBackend, 'delete_resource_policy', model_delete_resource_policy)
+    if not hasattr(SecretsManagerResponse, 'delete_resource_policy'):
+        setattr(SecretsManagerResponse, 'delete_resource_policy', response_delete_resource_policy)
+
+    get_resource_policy_orig = get_resource_policy
 
 
 def start_secretsmanager(port=None, asynchronous=None, backend_port=None, update_listener=None):
