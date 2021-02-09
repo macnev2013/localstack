@@ -61,7 +61,7 @@ class ProxyListenerApiGateway(ProxyListener):
                 return get_gateway_responses(api_id)
             if method == 'PUT':
                 return put_gateway_response(api_id, response_type, data)
-        if re.match(PATH_REGEX_TEST_INVOKE_API, path) and method == 'POST':
+        if is_test_invoke_method(path) and method == 'POST':
             kwargs = {}
 
             # if call is from test_invoke_api then use http_method to find the integration,
@@ -331,7 +331,9 @@ def invoke_rest_api_integration(api_id, stage, integration, method, path, invoca
             # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html#api-gateway-create-api-as-simple-proxy-for-lambda-test
             request_context = get_lambda_event_request_context(method, path, data, headers,
                 integration_uri=uri, resource_id=resource_id)
-            stage_variables = get_stage_variables(api_id, stage)
+
+            stage_variables = \
+                (get_stage_variables(api_id, stage) if not is_test_invoke_method(path) else None)
 
             result = lambda_api.process_apigateway_invocation(func_arn, relative_path, data_str,
                 stage, api_id, headers, path_params=path_params, query_string_params=query_string_params,
@@ -518,12 +520,18 @@ def get_lambda_event_request_context(method, path, data, headers, integration_ur
         'requestTime': datetime.datetime.utcnow(),
         'requestTimeEpoch': int(time.time() * 1000),
     }
-    if not re.match(PATH_REGEX_TEST_INVOKE_API, path):
+    if not is_test_invoke_method(path):
         _, stage, relative_path_w_query_params = get_api_id_stage_invocation_path(path, headers)
         relative_path, query_string_params = extract_query_string_params(path=relative_path_w_query_params)
         request_context['path'] = '/' + stage + relative_path
         request_context['stage'] = stage
     return request_context
+
+
+def is_test_invoke_method(path):
+    if re.match(PATH_REGEX_TEST_INVOKE_API, path):
+        return True
+    return False
 
 
 # instantiate listener
