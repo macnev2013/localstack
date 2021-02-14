@@ -68,20 +68,24 @@ class ProxyListenerApiGateway(ProxyListener):
                 return get_gateway_responses(api_id)
             if method == 'PUT':
                 return put_gateway_response(api_id, response_type, data)
-        if is_test_invoke_method(path) and method == 'POST':
-            kwargs = {}
+        try:
+            if is_test_invoke_method(path) and method == 'POST':
+                kwargs = {}
 
-            # if call is from test_invoke_api then use http_method to find the integration,
-            # as test_invoke_api make POST call to interect
-            match = re.match(PATH_REGEX_TEST_INVOKE_API, path)
-            method = match[3]
-            if data:
-                orig_data = data
-                path_with_query_string = orig_data.get('pathWithQueryString', None)
-                data = data.get('body', None)
-                headers = orig_data.get('headers', {})
-                kwargs = {'path_with_query_string': path_with_query_string} if path_with_query_string else {}
-            return invoke_rest_api_from_request(method=method, path=path, data=data, headers=headers, **kwargs)
+                # if call is from test_invoke_api then use http_method to find the integration,
+                # as test_invoke_api make POST call to interect
+                match = re.match(PATH_REGEX_TEST_INVOKE_API, path)
+                method = match[3]
+                if data:
+                    orig_data = data
+                    path_with_query_string = orig_data.get('pathWithQueryString', None)
+                    data = data.get('body', None)
+                    headers = orig_data.get('headers', {})
+                    kwargs = {'path_with_query_string': path_with_query_string} if path_with_query_string else {}
+                return invoke_rest_api_from_request(method=method, path=path, data=data, headers=headers, **kwargs)
+        except Exception as e:
+            import traceback
+            print('Error: %s %s' % (e, traceback.format_exc()))
         return True
 
     def return_response(self, method, path, data, headers, response):
