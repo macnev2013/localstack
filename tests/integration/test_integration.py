@@ -6,7 +6,7 @@ import base64
 import logging
 import unittest
 from datetime import datetime, timedelta
-from nose.tools import assert_raises
+import pytest
 from localstack.utils import testutil
 from localstack.utils.aws import aws_stack
 from localstack.utils.common import (
@@ -83,7 +83,7 @@ class IntegrationTest(unittest.TestCase):
         self.assertTrue(stream)
         self.assertIn(TEST_FIREHOSE_NAME, firehose.list_delivery_streams()['DeliveryStreamNames'])
         tags = firehose.list_tags_for_delivery_stream(DeliveryStreamName=TEST_FIREHOSE_NAME)
-        self.assertEquals(TEST_TAGS, tags['Tags'])
+        self.assertEqual(TEST_TAGS, tags['Tags'])
         # create target S3 bucket
         s3_resource.create_bucket(Bucket=TEST_BUCKET_NAME)
 
@@ -100,7 +100,7 @@ class IntegrationTest(unittest.TestCase):
         # check file layout in target bucket
         all_objects = testutil.map_all_s3_objects(buckets=[TEST_BUCKET_NAME])
         for key in all_objects.keys():
-            self.assertRegexpMatches(key, r'.*/\d{4}/\d{2}/\d{2}/\d{2}/.*\-\d{4}\-\d{2}\-\d{2}\-\d{2}.*')
+            self.assertRegex(key, r'.*/\d{4}/\d{2}/\d{2}/\d{2}/.*\-\d{4}\-\d{2}\-\d{2}\-\d{2}.*')
 
     def test_firehose_kinesis_to_s3(self):
         kinesis = aws_stack.connect_to_service('kinesis')
@@ -200,8 +200,9 @@ class IntegrationTest(unittest.TestCase):
         testutil.create_lambda_function(func_name=TEST_LAMBDA_NAME_DDB,
             zip_file=zip_file, event_source_arn=ddb_event_source_arn, delete=True)
         # make sure we cannot create Lambda with same name twice
-        assert_raises(Exception, testutil.create_lambda_function, func_name=TEST_LAMBDA_NAME_DDB,
-            zip_file=zip_file, event_source_arn=ddb_event_source_arn)
+        with pytest.raises(Exception):
+            testutil.create_lambda_function(func_name=TEST_LAMBDA_NAME_DDB,
+                                            zip_file=zip_file, event_source_arn=ddb_event_source_arn)
 
         # deploy test lambda connected to Kinesis Stream
         kinesis_event_source_arn = kinesis.describe_stream(

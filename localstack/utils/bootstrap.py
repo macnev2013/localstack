@@ -109,7 +109,10 @@ def run_pip_main(args):
 @log_duration()
 def load_plugin_from_path(file_path, scope=None):
     if os.path.exists(file_path):
-        module = re.sub(r'(^|.+/)([^/]+)/plugins.py', r'\2', file_path)
+        delimiters = r'[\\/]'
+        not_delimiters = r'[^\\/]'
+        regex = r'(^|.+{d})({n}+){d}plugins.py'.format(d=delimiters, n=not_delimiters)
+        module = re.sub(regex, r'\2', file_path)
         method_name = 'register_localstack_plugins'
         scope = scope or PLUGIN_SCOPE_SERVICES
         if scope == PLUGIN_SCOPE_COMMANDS:
@@ -466,7 +469,8 @@ class PortMappings(object):
                 result += hash(i)
             return result
 
-    def __init__(self):
+    def __init__(self, bind_host=None):
+        self.bind_host = bind_host if bind_host else ''
         self.mappings = {}
 
     def add(self, port, mapped=None):
@@ -490,10 +494,12 @@ class PortMappings(object):
         self.mappings[self.HashableList([port, port])] = [mapped, mapped]
 
     def to_str(self):
+        bind_address = f'{self.bind_host}:' if self.bind_host else ''
+
         def entry(k, v):
             if k[0] == k[1] and v[0] == v[1]:
-                return '-p %s:%s' % (k[0], v[0])
-            return '-p %s-%s:%s-%s' % (k[0], k[1], v[0], v[1])
+                return '-p %s%s:%s' % (bind_address, k[0], v[0])
+            return '-p %s%s-%s:%s-%s' % (bind_address, k[0], k[1], v[0], v[1])
 
         return ' '.join([entry(k, v) for k, v in self.mappings.items()])
 
@@ -570,7 +576,7 @@ def start_infra_in_docker():
         entry.get('docker', {}).get('run_flags', '') for entry in plugin_configs])
 
     # container for port mappings
-    port_mappings = PortMappings()
+    port_mappings = PortMappings(bind_host=config.EDGE_BIND_HOST)
 
     # get port ranges defined via DOCKER_FLAGS (if any)
     user_flags = extract_port_flags(user_flags, port_mappings)
@@ -699,7 +705,7 @@ class FuncThread(threading.Thread):
         except Exception as e:
             result = e
             if not self.quiet:
-                LOG.warning('Thread run method %s(%s) failed: %s %s' %
+                LOG.info('Thread run method %s(%s) failed: %s %s' %
                     (self.func, self.params, e, traceback.format_exc()))
         finally:
             try:

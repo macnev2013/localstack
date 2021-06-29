@@ -197,7 +197,7 @@ def authenticate_presign_url(method, path, headers, data=None):
                     elif key_lower in (blacklisted_header.lower() for blacklisted_header in BLACKLISTED_HEADERS):
                         pass
                     else:
-                        sign_headers[key] = query_params[key][0]
+                        query_string[key] = query_params[key][0]
 
     for header_name, header_value in headers.items():
         header_name_lower = header_name.lower()
@@ -268,7 +268,7 @@ def authenticate_presign_url(method, path, headers, data=None):
         response = authenticate_presign_url_signv4(method, path, headers, data, url, query_params, request_dict)
 
     if response is not None:
-        LOGGER.error('Presign signature calculation failed: %s' % response)
+        LOGGER.info('Presign signature calculation failed: %s' % response)
         return response
     LOGGER.debug('Valid presign url.')
 

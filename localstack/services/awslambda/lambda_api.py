@@ -1,6 +1,6 @@
 import re
 import os
-import imp
+import importlib.machinery
 import sys
 import json
 import uuid
@@ -508,12 +508,14 @@ def get_event_sources(func_name=None, source_arn=None):
     result = []
     for m in region.event_source_mappings:
         if not func_name or (m['FunctionArn'] in [func_name, func_arn(func_name)]):
-            if _arn_match(mapped=m['EventSourceArn'], searched=source_arn):
+            if _arn_match(mapped=m.get('EventSourceArn'), searched=source_arn):
                 result.append(m)
     return result
 
 
 def _arn_match(mapped, searched):
+    if not mapped:
+        return False
     if not searched or mapped == searched:
         return True
     # Some types of ARNs can end with a path separated by slashes, for
@@ -621,6 +623,10 @@ def run_lambda(func_arn, event, context={}, version=None,
     return result
 
 
+def load_source(name, file):
+    return importlib.machinery.SourceFileLoader(name, file).load_module()
+
+
 def exec_lambda_code(script, handler_function='handler', lambda_cwd=None, lambda_env=None):
     if lambda_cwd or lambda_env:
         EXEC_MUTEX.acquire()
@@ -641,7 +647,7 @@ def exec_lambda_code(script, handler_function='handler', lambda_cwd=None, lambda
     try:
         pre_sys_modules_keys = set(sys.modules.keys())
         try:
-            handler_module = imp.load_source(lambda_id, lambda_file)
+            handler_module = load_source(lambda_id, lambda_file)
             module_vars = handler_module.__dict__
         finally:
             # the above import can bring files for the function

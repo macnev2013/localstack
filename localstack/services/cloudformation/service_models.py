@@ -633,6 +633,27 @@ class KinesisStream(GenericBaseModel):
         result = aws_stack.connect_to_service('kinesis').describe_stream(StreamName=stream_name)
         return result
 
+    @staticmethod
+    def get_deploy_templates():
+        def get_delete_params(params, **kwargs):
+            return {'StreamName': params['Name'], 'EnforceConsumerDeletion': True}
+        return {
+            'create': {
+                'function': 'create_stream',
+                'parameters': {
+                    'StreamName': 'Name',
+                    'ShardCount': 'ShardCount'
+                },
+                'defaults': {
+                    'ShardCount': 1
+                }
+            },
+            'delete': {
+                'function': 'delete_stream',
+                'parameters': get_delete_params
+            }
+        }
+
 
 class KinesisStreamConsumer(GenericBaseModel):
     @staticmethod
@@ -649,6 +670,7 @@ class KinesisStreamConsumer(GenericBaseModel):
         result = [r for r in result['Consumers'] if r['ConsumerName'] == props['ConsumerName']]
         return (result or [None])[0]
 
+    @staticmethod
     def get_deploy_templates():
         return {
             'create': {
@@ -675,6 +697,7 @@ class Route53RecordSet(GenericBaseModel):
         result = [r for r in result if r['Name'] == props['Name'] and r['Type'] == props['Type']]
         return (result or [None])[0]
 
+    @staticmethod
     def get_deploy_templates():
         def param_change_batch(params, **kwargs):
             attr_names = ['Name', 'Type', 'SetIdentifier', 'Weight', 'Region', 'GeoLocation',
@@ -1320,6 +1343,56 @@ class S3BucketPolicy(GenericBaseModel):
         bucket_name = self.props.get('Bucket') or self.resource_id
         bucket_name = self.resolve_refs_recursively(stack_name, bucket_name, resources)
         return aws_stack.connect_to_service('s3').get_bucket_policy(Bucket=bucket_name)
+
+
+class CloudWatchAlarm(GenericBaseModel):
+    @staticmethod
+    def cloudformation_type():
+        return 'AWS::CloudWatch::Alarm'
+
+    def get_physical_resource_id(self, attribute=None, **kwargs):
+        return self.props.get('AlarmName')
+
+    def _response_name(self):
+        return 'MetricAlarms'
+
+    @classmethod
+    def _create_function_name(self):
+        return 'put_metric_alarm'
+
+    def fetch_state(self, stack_name, resources):
+        client = aws_stack.connect_to_service('cloudwatch')
+        alarm_name = self.resolve_refs_recursively(stack_name, self.props['AlarmName'], resources)
+        result = client.describe_alarms(AlarmNames=[alarm_name]).get(self._response_name(), [])
+        return (result or [None])[0]
+
+    @classmethod
+    def get_deploy_templates(cls):
+        def get_delete_params(params, **kwargs):
+            return {'AlarmNames': [params['AlarmName']]}
+
+        return {
+            'create': {
+                'function': cls._create_function_name()
+            },
+            'delete': {
+                'function': 'delete_alarms',
+                'parameters': get_delete_params
+            }
+        }
+
+
+class CloudWatchCompositeAlarm(CloudWatchAlarm):
+    @staticmethod
+    def cloudformation_type():
+        return 'AWS::CloudWatch::CompositeAlarm'
+
+    def _response_name(self):
+        return 'CompositeAlarms'
+
+    @classmethod
+    def _create_function_name(self):
+        return 'put_composite_alarm'
 
 
 class SQSQueue(GenericBaseModel, MotoQueue):

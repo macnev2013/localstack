@@ -510,7 +510,7 @@ class TestLambdaBaseFeatures(unittest.TestCase):
 
         # checking if 'MaximumEventAgeInSeconds' is removed
         self.assertNotIn('MaximumEventAgeInSeconds', response)
-        self.assertEquals(isinstance(response['LastModified'], datetime), True)
+        self.assertEqual(isinstance(response['LastModified'], datetime), True)
 
         # updating event invoke config
         response = lambda_client.update_function_event_invoke_config(
@@ -717,10 +717,14 @@ class TestLambdaBaseFeatures(unittest.TestCase):
             FunctionName=function_name
         )
 
+        def process_records(record):
+            print('Processing {}'.format(record))
+
         stream_name = 'test-foobar'
         aws_stack.create_kinesis_stream(stream_name, delete=True)
         kinesis_connector.listen_to_kinesis(
             stream_name=stream_name,
+            listener_func=process_records,
             wait_until_started=True)
 
         kinesis = aws_stack.connect_to_service('kinesis')
