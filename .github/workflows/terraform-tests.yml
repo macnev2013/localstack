@@ -51,7 +51,7 @@ jobs:
 
     - name: Installing Localstack Dependancies Start Localstack
       run: |
-        make init
+        make install
         make start &
 
     - name: Get list of tests for  this service
