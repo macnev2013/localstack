@@ -34,15 +34,10 @@ jobs:
         go-version: ${{ matrix.go-version }}
 
     - uses: actions/checkout@v3
-
-    - name: Installing Localstack Dependancies Start Localstack
-      run: |
-        pwd
-        ls
-
     - uses: actions/checkout@v3
       with:
         repository: hashicorp/terraform-provider-aws
+        path: './terraform-provider-aws'
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
@@ -51,8 +46,6 @@ jobs:
 
     - name: Installing Localstack Dependancies Start Localstack
       run: |
-        pwd
-        ls
         make init
         make start &
 
