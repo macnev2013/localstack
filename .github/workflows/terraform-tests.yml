@@ -47,6 +47,8 @@ jobs:
 
     - name: Installing Localstack Dependancies Start Localstack
       run: |
+        pwd
+        ls
         make init
         make start &
 
