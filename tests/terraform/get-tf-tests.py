@@ -3,7 +3,7 @@ import sys
 
 
 def print_test_names(service):
-    with open("terraform-tests.success.txt") as f:
+    with open("tests/terraform/terraform-tests.success.txt") as f:
         dct = yaml.load(f, Loader=yaml.FullLoader)
         tests = dct.get(service)
         if len(tests) == 1:
