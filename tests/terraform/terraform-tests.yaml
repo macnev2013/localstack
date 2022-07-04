@@ -1,4 +1,3 @@
 route53:
-    - TestAccRoute53Record_basic
 s3:
     - TestAccS3ObjectCopy
