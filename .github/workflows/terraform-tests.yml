@@ -63,17 +63,12 @@ jobs:
           ${{ runner.os }}-venv-${{ matrix.python-version }}-
 
     - name: Upgrade Pip
-      run: pip install --upgrade pip
+      run: pip3 install --upgrade pip
 
     - name: Creating Virtual Environment
       if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
         python3 -m venv .venv
-
-    - name: Creating Virtual Environment & Install Dependencies
-      if: steps.python-cache.outputs.cache-hit != 'true'
-      run: |
-        pip install --upgrade pip && python3 -m venv .venv
 
     - name: Installing Localstack Dependancies Start Localstack
       run: |
