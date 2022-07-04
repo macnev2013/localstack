@@ -72,7 +72,7 @@ jobs:
 
     - name: Installing Localstack Dependancies Start Localstack
       run: |
-        sudo apt install sasl
+        sudo apt update && sudo apt install sasl -y
         make install
         make start &
 
