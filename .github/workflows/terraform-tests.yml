@@ -61,16 +61,16 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-venv-${{ matrix.python-version }}-
 
-    # - name: Upgrading Pip
-    #   run: |
-    #     sudo apt update
-    #     sudo apt install libsasl2-dev -y
-    #     pip install --upgrade pip
+    - name: Upgrading Pip
+      run: |
+        sudo apt update
+        sudo apt install libsasl2-dev -y
+        pip install --upgrade pip
+        pip install yaml
 
     - name: Creating Virtual Environment
-      # if: steps.python-cache.outputs.cache-hit != 'true'
+      if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
-        pip install --upgrade pip
         python3 -m venv .venv
 
     - name: Installing Localstack Dependancies Start Localstack
