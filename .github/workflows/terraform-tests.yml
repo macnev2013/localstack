@@ -2,7 +2,6 @@ on:
   push:
     branches:
       - master
-      - tf-test
   pull_request:
     branches:
       - master
