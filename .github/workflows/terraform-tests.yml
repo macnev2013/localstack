@@ -68,6 +68,14 @@ jobs:
         pip install --upgrade pip
         pip install pyyaml
 
+    - name: Get list of tests for this service
+      id: get-list
+      run: echo "::set-output name=testlist::$(python tests/terraform/get-tf-tests.py ${{ matrix.service }})"
+
+    - name: Check Test Lists
+      if: ${{ steps.get-list.outputs.testlist == '' }}
+      run: exit 1
+
     - name: Creating Virtual Environment
       if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
@@ -77,14 +85,6 @@ jobs:
       run: |
         make install
         make start &
-
-    - name: Get list of tests for this service
-      id: get-list
-      run: echo "::set-output name=testlist::$(python tests/terraform/get-tf-tests.py ${{ matrix.service }})"
-
-    - name: Check Test Lists
-      if: "contains(steps.get-list.outputs.testlist, '')"
-      run: exit 1
 
     - name: Patching Terraform Provider
       run: |
