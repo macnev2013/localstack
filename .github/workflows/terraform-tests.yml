@@ -83,7 +83,7 @@ jobs:
       run: echo "::set-output name=testlist::$(python tests/terraform/get-tf-tests.py ${{ matrix.service }})"
 
     - name: Check Test Lists
-      if: steps.get-list.outputs.testlist == ""
+      if: 'contains(steps.get-list.outputs.testlist, "")'
       run: exit 1
 
     - name: Patching Terraform Provider
