@@ -15,6 +15,6 @@ def print_test_names(service):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        exit 
+        sys.exit(1)
     else:
         print_test_names(service=sys.argv[1])
