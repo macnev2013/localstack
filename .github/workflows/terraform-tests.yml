@@ -82,6 +82,10 @@ jobs:
       id: get-list
       run: echo "::set-output name=testlist::$(python tests/terraform/get-tf-tests.py ${{ matrix.service }})"
 
+    - name: Check Test Lists
+      run: |
+        echo "${{ steps.get-list.outputs.testlist }}"
+
     - name: Patching Terraform Provider
       run: |
         cd terraform-provider-aws
