@@ -7,6 +7,8 @@ def print_test_names(service):
     with open("tests/terraform/terraform-tests.yaml") as f:
         dct = yaml.load(f, Loader=yaml.FullLoader)
         tests = dct.get(service)
+        if not tests:
+            sys.exit(1)
         if len(tests) == 1:
             print(tests[0])
         else:
