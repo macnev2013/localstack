@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 from moto.route53resolver.models import Route53ResolverBackend as MotoRoute53ResolverBackend
 from moto.route53resolver.models import route53resolver_backends as moto_route53resolver_backends
@@ -14,11 +15,15 @@ from localstack.aws.api.route53resolver import (
     CreateFirewallDomainListResponse,
     CreateFirewallRuleGroupResponse,
     CreateFirewallRuleResponse,
+    CreateResolverQueryLogConfigResponse,
     CreatorRequestId,
     DeleteFirewallDomainListResponse,
     DeleteFirewallRuleGroupResponse,
     DeleteFirewallRuleResponse,
+    DeleteResolverQueryLogConfigResponse,
+    DestinationArn,
     DisassociateFirewallRuleGroupResponse,
+    Filters,
     FirewallDomainList,
     FirewallDomainListMetadata,
     FirewallDomainName,
@@ -31,19 +36,25 @@ from localstack.aws.api.route53resolver import (
     GetFirewallDomainListResponse,
     GetFirewallRuleGroupAssociationResponse,
     GetFirewallRuleGroupResponse,
+    GetResolverQueryLogConfigResponse,
     ListDomainMaxResults,
     ListFirewallDomainListsResponse,
     ListFirewallDomainsResponse,
     ListFirewallRuleGroupsResponse,
     ListFirewallRulesResponse,
+    ListResolverQueryLogConfigsResponse,
     MaxResults,
     MutationProtectionStatus,
     Name,
     NextToken,
     Priority,
+    ResolverQueryLogConfig,
+    ResolverQueryLogConfigName,
     ResourceId,
     ResourceNotFoundException,
     Route53ResolverApi,
+    SortByKey,
+    SortOrder,
     TagList,
     UpdateFirewallDomainsResponse,
     UpdateFirewallRuleGroupAssociationResponse,
@@ -56,16 +67,20 @@ from localstack.services.route53resolver.models import (
     delete_firewall_rule,
     delete_firewall_rule_group,
     delete_firewall_rule_group_association,
+    delete_resolver_query_log_config,
     get_firewall_domain,
     get_firewall_domain_list,
     get_firewall_rule,
     get_firewall_rule_group,
     get_firewall_rule_group_association,
+    get_resolver_query_log_config,
 )
 from localstack.services.route53resolver.utils import (
+    get_resolver_query_log_config_id,
     get_route53_resolver_firewall_domain_list_id,
     get_route53_resolver_firewall_rule_group_association_id,
     get_route53_resolver_firewall_rule_group_id,
+    validate_destination_arn,
     validate_mutation_protection,
     validate_priority,
 )
@@ -453,6 +468,70 @@ class Route53ResolverProvider(Route53ResolverApi):
 
         return UpdateFirewallRuleGroupAssociationResponse(
             FirewallRuleGroupAssociation=firewall_rule_group_association
+        )
+
+    def create_resolver_query_log_config(
+        self,
+        context: RequestContext,
+        name: ResolverQueryLogConfigName,
+        destination_arn: DestinationArn,
+        creator_request_id: CreatorRequestId,
+        tags: TagList = None,
+    ) -> CreateResolverQueryLogConfigResponse:
+        region_details = Route53ResolverBackend.get()
+        id = get_resolver_query_log_config_id()
+        arn = aws_stack.get_resolver_query_log_config_arn(id)
+        resolver_query_log_config: ResolverQueryLogConfig = ResolverQueryLogConfig(
+            Id=id,
+            Arn=arn,
+            Name=name,
+            AssociationCount=0,
+            Status="CREATED",
+            OwnerId=context.account_id,
+            ShareStatus="NOT_SHARED",
+            DestinationArn=destination_arn,
+            CreatorRequestId=creator_request_id,
+            CreationTime=datetime.now(timezone.utc).isoformat(),
+        )
+        validate_destination_arn(destination_arn)
+        region_details.resolver_query_log_configs[id] = resolver_query_log_config
+
+        return CreateResolverQueryLogConfigResponse(
+            ResolverQueryLogConfig=resolver_query_log_config
+        )
+
+    def get_resolver_query_log_config(
+        self, context: RequestContext, resolver_query_log_config_id: ResourceId
+    ) -> GetResolverQueryLogConfigResponse:
+        resolver_query_log_config = get_resolver_query_log_config(resolver_query_log_config_id)
+        return GetResolverQueryLogConfigResponse(ResolverQueryLogConfig=resolver_query_log_config)
+
+    def delete_resolver_query_log_config(
+        self, context: RequestContext, resolver_query_log_config_id: ResourceId
+    ) -> DeleteResolverQueryLogConfigResponse:
+        resolver_query_log_config: Optional[
+            ResolverQueryLogConfig
+        ] = delete_resolver_query_log_config(resolver_query_log_config_id)
+        return DeleteResolverQueryLogConfigResponse(
+            ResolverQueryLogConfig=resolver_query_log_config
+        )
+
+    def list_resolver_query_log_configs(
+        self,
+        context: RequestContext,
+        max_results: MaxResults = None,
+        next_token: NextToken = None,
+        filters: Filters = None,
+        sort_by: SortByKey = None,
+        sort_order: SortOrder = None,
+    ) -> ListResolverQueryLogConfigsResponse:
+        region_details = Route53ResolverBackend.get()
+        resolver_query_log_configs = []
+        for resolver_query_log_config in region_details.resolver_query_log_configs.values():
+            resolver_query_log_configs.append(ResolverQueryLogConfig(resolver_query_log_config))
+
+        return ListResolverQueryLogConfigsResponse(
+            ResolverQueryLogConfigs=resolver_query_log_configs
         )
 
 

@@ -15,6 +15,7 @@ class Route53ResolverBackend(RegionBackend):
         self.firewall_domains = {}
         self.firewall_rules = {}
         self.firewall_rule_group_associations = {}
+        self.resolver_query_log_configs = {}
 
 
 ## helper functions for the backend
@@ -106,3 +107,24 @@ def delete_firewall_rule(firewall_rule_group_id, firewall_domain_list_id):
     firewall_rule = get_firewall_rule(firewall_rule_group_id, firewall_domain_list_id)
     region_details.firewall_rules.get(firewall_rule_group_id, {}).pop(firewall_domain_list_id)
     return firewall_rule
+
+
+def get_resolver_query_log_config(id):
+    region_details = Route53ResolverBackend.get()
+    resolver_query_log_config = region_details.resolver_query_log_configs.get(id)
+    if not resolver_query_log_config:
+        raise ResourceNotFoundException(
+            f"[RSLVR-01601] The specified query logging configuration doesn't exist. Trace Id: '{aws_stack.get_trace_id()}'"
+        )
+
+    return resolver_query_log_config
+
+
+def delete_resolver_query_log_config(id):
+    region_details = Route53ResolverBackend.get()
+    if not region_details.resolver_query_log_configs.get(id):
+        raise ResourceNotFoundException(
+            f"[RSLVR-01601] The specified query logging configuration doesn't exist. Trace Id:: '{aws_stack.get_trace_id()}'"
+        )
+    resolver_query_log_config = region_details.resolver_query_log_configs.pop(id)
+    return resolver_query_log_config
