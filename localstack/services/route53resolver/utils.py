@@ -1,5 +1,7 @@
 import re
 
+from moto.ec2 import ec2_backends
+
 from localstack.aws.api.route53resolver import ResourceNotFoundException, ValidationException
 from localstack.utils.aws import aws_stack
 from localstack.utils.strings import get_random_hex
@@ -19,6 +21,18 @@ def get_route53_resolver_firewall_rule_group_association_id():
 
 def get_resolver_query_log_config_id():
     return f"rslvr-rqlc-{get_random_hex(17)}"
+
+
+def get_route53_resolver_query_log_config_association_id():
+    return f"rslvr-qlcassoc-{get_random_hex(17)}"
+
+
+def get_route53_resolver_query_log_config_disassociation_id():
+    return f"rslvr-qlcassoc-{get_random_hex(17)}"
+
+
+def get_firewall_config_id():
+    return f"rslvr-fc-{get_random_hex(17)}"
 
 
 def validate_priority(priority):
@@ -43,4 +57,13 @@ def validate_destination_arn(destination_arn):
     if not re.match(arn_pattern, destination_arn):
         raise ResourceNotFoundException(
             f"[RSLVR-01014] An Amazon Resource Name (ARN) for the destination is required. Trace Id: '1-{get_random_hex(8)}-{get_random_hex(24)}"
+        )
+
+
+def validate_vpc(resource_id, region):
+    backend = ec2_backends[region]
+
+    if resource_id not in backend.vpcs:
+        raise ValidationException(
+            f"[RSLVR-02025] Can't find the resource with ID : '{resource_id}'. Trace Id: '{aws_stack.get_trace_id()}'"
         )

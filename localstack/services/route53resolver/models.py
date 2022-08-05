@@ -16,6 +16,8 @@ class Route53ResolverBackend(RegionBackend):
         self.firewall_rules = {}
         self.firewall_rule_group_associations = {}
         self.resolver_query_log_configs = {}
+        self.resolver_query_log_config_associations = {}
+        self.firewall_configs = {}
 
 
 ## helper functions for the backend
@@ -128,3 +130,19 @@ def delete_resolver_query_log_config(id):
         )
     resolver_query_log_config = region_details.resolver_query_log_configs.pop(id)
     return resolver_query_log_config
+
+
+def delete_disassociation_query_log_config_id(resolver_query_log_config_id, resource_id):
+    region_details = Route53ResolverBackend.get()
+    association_id = None
+    for association in region_details.resolver_query_log_config_associations.values():
+        print("association:", association)
+        print("association=type:", type(association))
+        if not (
+            association.get("ResolverQueryLogConfigId") == resolver_query_log_config_id
+            and association.get("ResourceId") == resource_id
+        ):
+            raise ResourceNotFoundException()
+        association["Status"] = "DELETING"
+        association_id = association.get("Id")
+    return region_details.resolver_query_log_config_associations.pop(association_id)
