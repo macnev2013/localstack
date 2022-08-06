@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
+from moto.ec2.models import ec2_backends
 from moto.route53resolver.models import Route53ResolverBackend as MotoRoute53ResolverBackend
 from moto.route53resolver.models import route53resolver_backends as moto_route53resolver_backends
 
@@ -45,6 +46,8 @@ from localstack.aws.api.route53resolver import (
     GetResolverQueryLogConfigAssociationResponse,
     GetResolverQueryLogConfigResponse,
     ListDomainMaxResults,
+    ListFirewallConfigsMaxResult,
+    ListFirewallConfigsResponse,
     ListFirewallDomainListsResponse,
     ListFirewallDomainsResponse,
     ListFirewallRuleGroupsResponse,
@@ -74,6 +77,7 @@ from localstack.aws.api.route53resolver import (
 )
 from localstack.services.route53resolver.models import (
     Route53ResolverBackend,
+    create_firewall_config,
     delete_disassociation_query_log_config_id,
     delete_firewall_domain_list,
     delete_firewall_rule,
@@ -88,7 +92,6 @@ from localstack.services.route53resolver.models import (
     get_resolver_query_log_config,
 )
 from localstack.services.route53resolver.utils import (
-    get_firewall_config_id,
     get_resolver_query_log_config_id,
     get_route53_resolver_firewall_domain_list_id,
     get_route53_resolver_firewall_rule_group_association_id,
@@ -97,7 +100,6 @@ from localstack.services.route53resolver.utils import (
     validate_destination_arn,
     validate_mutation_protection,
     validate_priority,
-    validate_vpc,
 )
 from localstack.utils.aws import aws_stack
 from localstack.utils.collections import select_from_typed_dict
@@ -638,22 +640,27 @@ class Route53ResolverProvider(Route53ResolverApi):
     def get_firewall_config(
         self, context: RequestContext, resource_id: ResourceId
     ) -> GetFirewallConfigResponse:
-        region_details = Route53ResolverBackend.get()
-        validate_vpc(resource_id, context.region)
-        firewall_config: FirewallConfig = None
-        if region_details.firewall_configs.get(resource_id):
-            firewall_config = region_details.firewall_configs[resource_id]
-        else:
-            id = get_firewall_config_id()
-            firewall_config = FirewallConfig(
-                Id=id,
-                ResourceId=resource_id,
-                OwnerId=context.account_id,
-                FirewallFailOpen="DISABLED",
-            )
-            region_details.firewall_configs[resource_id] = firewall_config
+        owner_id = context.account_id
+        firewall_config = create_firewall_config(resource_id, context.region, owner_id)
 
         return GetFirewallConfigResponse(FirewallConfig=firewall_config)
+
+    def list_firewall_configs(
+        self,
+        context: RequestContext,
+        max_results: ListFirewallConfigsMaxResult = None,
+        next_token: NextToken = None,
+    ) -> ListFirewallConfigsResponse:
+        region_details = Route53ResolverBackend.get()
+        firewall_configs = []
+        owner_id = context.account_id
+        backend = ec2_backends[context.region]
+        for vpc in backend.vpcs:
+            if vpc not in region_details.firewall_configs:
+                create_firewall_config(vpc, context.region, owner_id)
+        for firewall_config in region_details.firewall_configs.values():
+            firewall_configs.append(select_from_typed_dict(FirewallConfig, firewall_config))
+        return ListFirewallConfigsResponse(FirewallConfigs=firewall_configs)
 
 
 @patch(MotoRoute53ResolverBackend._matched_arn)
