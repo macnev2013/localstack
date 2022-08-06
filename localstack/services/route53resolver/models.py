@@ -1,7 +1,12 @@
 from typing import Dict
 
-from localstack.aws.api.route53resolver import FirewallRuleGroup, ResourceNotFoundException
+from localstack.aws.api.route53resolver import (
+    FirewallConfig,
+    FirewallRuleGroup,
+    ResourceNotFoundException,
+)
 from localstack.services.generic_proxy import RegionBackend
+from localstack.services.route53resolver.utils import get_firewall_config_id, validate_vpc
 from localstack.utils.aws import aws_stack
 
 
@@ -146,3 +151,21 @@ def delete_disassociation_query_log_config_id(resolver_query_log_config_id, reso
         association["Status"] = "DELETING"
         association_id = association.get("Id")
     return region_details.resolver_query_log_config_associations.pop(association_id)
+
+
+def create_firewall_config(resource_id, region, owner_id):
+    region_details = Route53ResolverBackend.get()
+    validate_vpc(resource_id, region)
+    firewall_config: FirewallConfig = None
+    if region_details.firewall_configs.get(resource_id):
+        firewall_config = region_details.firewall_configs[resource_id]
+    else:
+        id = get_firewall_config_id()
+        firewall_config = FirewallConfig(
+            Id=id,
+            ResourceId=resource_id,
+            OwnerId=owner_id,
+            FirewallFailOpen="DISABLED",
+        )
+    region_details.firewall_configs[resource_id] = firewall_config
+    return firewall_config
