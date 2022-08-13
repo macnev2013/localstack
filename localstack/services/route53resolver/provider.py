@@ -35,6 +35,7 @@ from localstack.aws.api.route53resolver import (
     FirewallDomainName,
     FirewallDomains,
     FirewallDomainUpdateOperation,
+    FirewallFailOpenStatus,
     FirewallRule,
     FirewallRuleGroup,
     FirewallRuleGroupAssociation,
@@ -70,6 +71,7 @@ from localstack.aws.api.route53resolver import (
     SortByKey,
     SortOrder,
     TagList,
+    UpdateFirewallConfigResponse,
     UpdateFirewallDomainsResponse,
     UpdateFirewallRuleGroupAssociationResponse,
     UpdateFirewallRuleResponse,
@@ -661,6 +663,27 @@ class Route53ResolverProvider(Route53ResolverApi):
         for firewall_config in region_details.firewall_configs.values():
             firewall_configs.append(select_from_typed_dict(FirewallConfig, firewall_config))
         return ListFirewallConfigsResponse(FirewallConfigs=firewall_configs)
+
+    def update_firewall_config(
+        self,
+        context: RequestContext,
+        resource_id: ResourceId,
+        firewall_fail_open: FirewallFailOpenStatus,
+    ) -> UpdateFirewallConfigResponse:
+        region_details = Route53ResolverBackend.get()
+        backend = ec2_backends[context.region]
+        owner_id = context.account_id
+        for resource_id in backend.vpcs:
+            if resource_id not in region_details.firewall_configs:
+                firewall_config = create_firewall_config(resource_id, context.region, owner_id)
+                print(firewall_config)
+                firewall_config["FirewallFailOpen"] = firewall_fail_open
+            else:
+                firewall_config = region_details.firewall_configs[resource_id]
+                print(firewall_config)
+                firewall_config["FirewallFailOpen"] = firewall_fail_open
+
+        return UpdateFirewallConfigResponse(FirewallConfig=firewall_config)
 
 
 @patch(MotoRoute53ResolverBackend._matched_arn)
