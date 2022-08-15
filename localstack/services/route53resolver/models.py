@@ -123,7 +123,6 @@ def get_resolver_query_log_config(id):
         raise ResourceNotFoundException(
             f"[RSLVR-01601] The specified query logging configuration doesn't exist. Trace Id: '{aws_stack.get_trace_id()}'"
         )
-
     return resolver_query_log_config
 
 
@@ -137,12 +136,20 @@ def delete_resolver_query_log_config(id):
     return resolver_query_log_config
 
 
-def delete_disassociation_query_log_config_id(resolver_query_log_config_id, resource_id):
+def get_resolver_query_log_config_associations(id):
+    region_details = Route53ResolverBackend.get()
+    resolver_query_log_config_association = region_details.resolver_query_log_config_associations.get(id)
+    if not resolver_query_log_config_association:
+        raise ResourceNotFoundException(
+                f"[RSLVR-01601] The specified query logging configuration doesn't exist. Trace Id: '{aws_stack.get_trace_id()}'"
+            )
+    return resolver_query_log_config_association
+
+
+def delete_resolver_query_log_config_associations(resolver_query_log_config_id, resource_id):
     region_details = Route53ResolverBackend.get()
     association_id = None
     for association in region_details.resolver_query_log_config_associations.values():
-        print("association:", association)
-        print("association=type:", type(association))
         if not (
             association.get("ResolverQueryLogConfigId") == resolver_query_log_config_id
             and association.get("ResourceId") == resource_id
@@ -153,10 +160,10 @@ def delete_disassociation_query_log_config_id(resolver_query_log_config_id, reso
     return region_details.resolver_query_log_config_associations.pop(association_id)
 
 
-def create_firewall_config(resource_id, region, owner_id):
+def get_or_create_firewall_config(resource_id, region, owner_id):
     region_details = Route53ResolverBackend.get()
     validate_vpc(resource_id, region)
-    firewall_config: FirewallConfig = None
+    firewall_config: FirewallConfig
     if region_details.firewall_configs.get(resource_id):
         firewall_config = region_details.firewall_configs[resource_id]
     else:
@@ -167,5 +174,5 @@ def create_firewall_config(resource_id, region, owner_id):
             OwnerId=owner_id,
             FirewallFailOpen="DISABLED",
         )
-    region_details.firewall_configs[resource_id] = firewall_config
+        region_details.firewall_configs[resource_id] = firewall_config
     return firewall_config
