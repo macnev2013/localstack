@@ -5,11 +5,9 @@ from moto.ec2.models import ec2_backends
 from moto.route53resolver.models import Route53ResolverBackend as MotoRoute53ResolverBackend
 from moto.route53resolver.models import route53resolver_backends as moto_route53resolver_backends
 
-# from moto.ec2.models.vpcs import describe_vpcs
 from localstack.aws.api import RequestContext
 from localstack.aws.api.route53resolver import (
     Action,
-    Arn,
     AssociateFirewallRuleGroupResponse,
     AssociateResolverQueryLogConfigResponse,
     BlockOverrideDnsType,
@@ -55,17 +53,14 @@ from localstack.aws.api.route53resolver import (
     ListFirewallRulesResponse,
     ListResolverQueryLogConfigAssociationsResponse,
     ListResolverQueryLogConfigsResponse,
-    ListResolverRulesResponse,
     MaxResults,
     MutationProtectionStatus,
     Name,
     NextToken,
     Priority,
-    PutResolverQueryLogConfigPolicyResponse,
     ResolverQueryLogConfig,
     ResolverQueryLogConfigAssociation,
     ResolverQueryLogConfigName,
-    ResolverQueryLogConfigPolicy,
     ResourceId,
     ResourceNotFoundException,
     Route53ResolverApi,
@@ -104,7 +99,6 @@ from localstack.services.route53resolver.utils import (
     validate_destination_arn,
     validate_mutation_protection,
     validate_priority,
-    validate_vpc,
 )
 from localstack.utils.aws import aws_stack
 from localstack.utils.collections import select_from_typed_dict
@@ -554,7 +548,8 @@ class Route53ResolverProvider(Route53ResolverApi):
         for resolver_query_log_config in region_details.resolver_query_log_configs.values():
             resolver_query_log_configs.append(ResolverQueryLogConfig(resolver_query_log_config))
         return ListResolverQueryLogConfigsResponse(
-            ResolverQueryLogConfigs=resolver_query_log_configs
+            ResolverQueryLogConfigs=resolver_query_log_configs,
+            TotalCount=len(resolver_query_log_configs)
         )
 
     def associate_resolver_query_log_config(

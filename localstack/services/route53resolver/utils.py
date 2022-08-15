@@ -26,11 +26,6 @@ def get_resolver_query_log_config_id():
 def get_route53_resolver_query_log_config_association_id():
     return f"rslvr-qlcassoc-{get_random_hex(17)}"
 
-
-def get_route53_resolver_query_log_config_disassociation_id():
-    return f"rslvr-qlcassoc-{get_random_hex(17)}"
-
-
 def get_firewall_config_id():
     return f"rslvr-fc-{get_random_hex(17)}"
 
@@ -56,14 +51,14 @@ def validate_destination_arn(destination_arn):
     arn_pattern = r"arn:aws:(kinesis|logs|s3):?(.*)"
     if not re.match(arn_pattern, destination_arn):
         raise ResourceNotFoundException(
-            f"[RSLVR-01014] An Amazon Resource Name (ARN) for the destination is required. Trace Id: '1-{get_random_hex(8)}-{get_random_hex(24)}"
+            f"[RSLVR-01014] An Amazon Resource Name (ARN) for the destination is required. Trace Id: '{aws_stack.get_trace_id()}'"
         )
 
 
-def validate_vpc(resource_id, region):
+def validate_vpc(vpc_id, region):
     backend = ec2_backends[region]
 
-    if resource_id not in backend.vpcs:
+    if vpc_id not in backend.vpcs:
         raise ValidationException(
-            f"[RSLVR-02025] Can't find the resource with ID : '{resource_id}'. Trace Id: '{aws_stack.get_trace_id()}'"
+            f"[RSLVR-02025] Can't find the resource with ID : '{vpc_id}'. Trace Id: '{aws_stack.get_trace_id()}'"
         )
